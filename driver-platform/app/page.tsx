@@ -133,6 +133,24 @@ function isBiweeklyOffDate(
   return Math.abs(diffWeeks) % 2 === 0;
 }
 
+function StatCard({
+  label,
+  value,
+  sub,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+}) {
+  return (
+    <div className="rounded-3xl border border-black/10 bg-white p-4 shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
+      <p className="text-xs font-semibold tracking-wide text-black/55">{label}</p>
+      <p className="mt-2 text-2xl font-bold tracking-tight text-black">{value}</p>
+      {sub ? <p className="mt-1 text-xs text-black/45">{sub}</p> : null}
+    </div>
+  );
+}
+
 export default function Home() {
   const now = new Date();
   const todayString = toDateString(now);
@@ -149,6 +167,10 @@ export default function Home() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
 
   const [user, setUser] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(true);
@@ -541,8 +563,8 @@ export default function Home() {
 
   const signUp = async () => {
     const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
+      email: signupEmail,
+      password: signupPassword,
     });
 
     if (error) {
@@ -558,6 +580,9 @@ export default function Home() {
     }
 
     alert("회원가입 완료");
+    setSignupEmail("");
+    setSignupPassword("");
+    setIsSignupModalOpen(false);
   };
 
   const signIn = async () => {
@@ -636,8 +661,6 @@ export default function Home() {
         key,
         date,
         report,
-        isWeeklyRegularOff,
-        isBiweeklyRegularOff,
         isRegularOff,
         isWorked,
         isAdditionalOff,
@@ -695,8 +718,8 @@ export default function Home() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-white p-4 flex items-center justify-center text-black">
-        <div className="rounded-2xl border border-gray-300 bg-white p-6 shadow">
+      <main className="min-h-screen bg-[#f6f7fb] p-4 flex items-center justify-center text-black">
+        <div className="rounded-[28px] border border-black/8 bg-white px-6 py-5 shadow-[0_20px_60px_rgba(0,0,0,0.08)]">
           불러오는 중...
         </div>
       </main>
@@ -706,93 +729,110 @@ export default function Home() {
   if (user) {
     if (view === "settings") {
       return (
-        <main className="min-h-screen bg-white p-4 text-black">
-          <div className="mx-auto max-w-4xl space-y-4">
-            <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold text-black">기본 설정</h1>
+        <main className="min-h-screen bg-[#f6f7fb] p-4 text-black md:p-6">
+          <div className="mx-auto max-w-4xl space-y-5">
+            <div className="flex items-center justify-between rounded-[28px] border border-black/8 bg-white px-5 py-4 shadow-[0_20px_60px_rgba(0,0,0,0.06)]">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">기본 설정</h1>
+                <p className="mt-1 text-sm text-black/55">업무 기준값과 휴무 패턴을 설정합니다.</p>
+              </div>
               <button
                 onClick={() => setView("calendar")}
-                className="rounded-lg border border-gray-400 px-4 py-2 text-black"
+                className="rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-black hover:text-white"
               >
                 달력으로 돌아가기
               </button>
             </div>
 
-            <div className="rounded-2xl border border-gray-300 bg-white p-6 shadow">
+            <div className="rounded-[32px] border border-black/8 bg-white p-5 shadow-[0_20px_60px_rgba(0,0,0,0.06)] md:p-7">
               {settingsLoading ? (
                 <div className="text-black">설정 불러오는 중...</div>
               ) : (
-                <div className="space-y-4">
-                  <input
-                    type="text"
-                    name="driver_name"
-                    value={settings.driver_name}
-                    onChange={handleSettingsChange}
-                    placeholder="기사명"
-                    className="w-full rounded-lg border border-gray-400 px-3 py-2 text-black"
-                  />
+                <div className="space-y-5">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-black/70">기사명</label>
+                      <input
+                        type="text"
+                        name="driver_name"
+                        value={settings.driver_name}
+                        onChange={handleSettingsChange}
+                        placeholder="기사명"
+                        className="w-full rounded-2xl border border-black/10 bg-[#fafafa] px-4 py-3 text-black outline-none transition focus:border-black/30 focus:bg-white"
+                      />
+                    </div>
 
-                  <input
-                    type="number"
-                    name="unit_price"
-                    value={settings.unit_price}
-                    onChange={handleSettingsChange}
-                    placeholder="배송 단가(원)"
-                    className="no-spinner w-full rounded-lg border border-gray-400 px-3 py-2 text-black"
-                  />
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <select
-                      name="settlement_start_month_offset"
-                      value={settings.settlement_start_month_offset}
-                      onChange={handleSettingsChange}
-                      className="w-full rounded-lg border border-gray-400 px-3 py-2 text-black"
-                    >
-                      <option value="-1">시작월: 지난달</option>
-                      <option value="0">시작월: 이번달</option>
-                    </select>
-
-                    <select
-                      name="settlement_start_day"
-                      value={settings.settlement_start_day}
-                      onChange={handleSettingsChange}
-                      className="w-full rounded-lg border border-gray-400 px-3 py-2 text-black"
-                    >
-                      {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                        <option key={day} value={day}>
-                          시작일 {day}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-black/70">배송 단가</label>
+                      <input
+                        type="number"
+                        name="unit_price"
+                        value={settings.unit_price}
+                        onChange={handleSettingsChange}
+                        placeholder="배송 단가(원)"
+                        className="no-spinner w-full rounded-2xl border border-black/10 bg-[#fafafa] px-4 py-3 text-black outline-none transition focus:border-black/30 focus:bg-white"
+                      />
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <select
-                      name="settlement_end_month_offset"
-                      value={settings.settlement_end_month_offset}
-                      onChange={handleSettingsChange}
-                      className="w-full rounded-lg border border-gray-400 px-3 py-2 text-black"
-                    >
-                      <option value="0">종료월: 이번달</option>
-                      <option value="1">종료월: 다음달</option>
-                    </select>
+                  <div className="rounded-3xl border border-black/8 bg-[#fafafa] p-4">
+                    <p className="mb-3 text-sm font-semibold text-black/75">정산 기간 설정</p>
 
-                    <select
-                      name="settlement_end_day"
-                      value={settings.settlement_end_day}
-                      onChange={handleSettingsChange}
-                      className="w-full rounded-lg border border-gray-400 px-3 py-2 text-black"
-                    >
-                      {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                        <option key={day} value={day}>
-                          종료일 {day}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="grid gap-3">
+                        <select
+                          name="settlement_start_month_offset"
+                          value={settings.settlement_start_month_offset}
+                          onChange={handleSettingsChange}
+                          className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-black outline-none"
+                        >
+                          <option value="-1">시작월: 지난달</option>
+                          <option value="0">시작월: 이번달</option>
+                        </select>
+
+                        <select
+                          name="settlement_start_day"
+                          value={settings.settlement_start_day}
+                          onChange={handleSettingsChange}
+                          className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-black outline-none"
+                        >
+                          {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                            <option key={day} value={day}>
+                              시작일 {day}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="grid gap-3">
+                        <select
+                          name="settlement_end_month_offset"
+                          value={settings.settlement_end_month_offset}
+                          onChange={handleSettingsChange}
+                          className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-black outline-none"
+                        >
+                          <option value="0">종료월: 이번달</option>
+                          <option value="1">종료월: 다음달</option>
+                        </select>
+
+                        <select
+                          name="settlement_end_day"
+                          value={settings.settlement_end_day}
+                          onChange={handleSettingsChange}
+                          className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-black outline-none"
+                        >
+                          {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                            <option key={day} value={day}>
+                              종료일 {day}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
                   </div>
 
-                  <div>
-                    <p className="mb-2 text-sm font-semibold text-black">매주 휴무</p>
+                  <div className="rounded-3xl border border-black/8 bg-[#fafafa] p-4">
+                    <p className="mb-3 text-sm font-semibold text-black/75">매주 휴무</p>
                     <div className="flex flex-wrap gap-2">
                       {Array.from({ length: 7 }, (_, i) => i).map((day) => {
                         const active = settings.off_days.includes(day);
@@ -801,10 +841,10 @@ export default function Home() {
                             key={day}
                             type="button"
                             onClick={() => toggleWeeklyOffDay(day)}
-                            className={`rounded-lg px-4 py-2 border ${
+                            className={`rounded-2xl px-4 py-2.5 text-sm font-semibold transition ${
                               active
-                                ? "bg-black text-white border-black"
-                                : "bg-white text-black border-gray-400"
+                                ? "bg-black text-white shadow-[0_10px_25px_rgba(0,0,0,0.18)]"
+                                : "border border-black/10 bg-white text-black hover:border-black/20"
                             }`}
                           >
                             {getKoreanDayLabel(day)}
@@ -814,8 +854,8 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div>
-                    <p className="mb-2 text-sm font-semibold text-black">
+                  <div className="rounded-3xl border border-black/8 bg-[#fafafa] p-4">
+                    <p className="mb-2 text-sm font-semibold text-black/75">
                       격주휴무 기준일을 선택해주세요
                     </p>
                     <input
@@ -823,10 +863,10 @@ export default function Home() {
                       name="biweekly_anchor_date"
                       value={settings.biweekly_anchor_date}
                       onChange={handleSettingsChange}
-                      className="w-full rounded-lg border border-gray-400 px-3 py-2 text-black"
+                      className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-black outline-none md:max-w-sm"
                     />
                     {settings.biweekly_anchor_date && settings.biweekly_off_days.length > 0 && (
-                      <p className="mt-2 text-sm text-black/70">
+                      <p className="mt-2 text-sm text-black/55">
                         선택된 요일: {getKoreanDayLabel(settings.biweekly_off_days[0])}요일
                       </p>
                     )}
@@ -835,7 +875,7 @@ export default function Home() {
                   <button
                     onClick={saveSettings}
                     disabled={saving}
-                    className="w-full rounded-lg bg-black px-4 py-3 text-white disabled:opacity-50"
+                    className="w-full rounded-2xl bg-black px-4 py-3.5 text-base font-semibold text-white shadow-[0_16px_32px_rgba(0,0,0,0.18)] transition hover:translate-y-[-1px] disabled:opacity-50"
                   >
                     {saving ? "저장 중..." : "저장"}
                   </button>
@@ -848,52 +888,59 @@ export default function Home() {
     }
 
     return (
-      <main className="min-h-screen bg-white p-4 text-black">
-        <div className="mx-auto max-w-6xl space-y-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-black">업무 리포트 달력</h1>
-              <p className="text-black">
-                {settings.driver_name ? `${settings.driver_name} 기사님` : user.email}
-              </p>
-              <p className="text-sm text-black">
-                정산기간: {toDateString(settlementRange.start)} ~{" "}
-                {toDateString(settlementRange.end)}
-              </p>
-            </div>
+      <main className="min-h-screen bg-[#f6f7fb] p-4 text-black md:p-6">
+        <div className="mx-auto max-w-6xl space-y-5">
+          <div className="rounded-[32px] border border-black/8 bg-white px-5 py-5 shadow-[0_20px_60px_rgba(0,0,0,0.06)] md:px-6">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-xs font-semibold tracking-[0.2em] text-black/40">
+                  DRIVER REPORT
+                </p>
+                <h1 className="mt-1 text-3xl font-bold tracking-tight">
+                  업무 리포트 달력
+                </h1>
+                <p className="mt-1 text-sm text-black/60">
+                  {settings.driver_name ? `${settings.driver_name} 기사님` : user.email}
+                </p>
+                <p className="mt-1 text-sm font-medium text-black/70">
+                  정산기간: {toDateString(settlementRange.start)} ~{" "}
+                  {toDateString(settlementRange.end)}
+                </p>
+              </div>
 
-            <div className="flex gap-2">
-              <button
-                onClick={() => setView("settings")}
-                className="rounded-lg border border-gray-400 px-4 py-2 text-black"
-              >
-                기본설정
-              </button>
-              <button
-                onClick={signOut}
-                className="rounded-lg bg-black px-4 py-2 text-white"
-              >
-                로그아웃
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setView("settings")}
+                  className="rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-black transition hover:border-black/20 hover:bg-black hover:text-white"
+                >
+                  기본설정
+                </button>
+                <button
+                  onClick={signOut}
+                  className="rounded-2xl bg-black px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(0,0,0,0.18)] transition hover:translate-y-[-1px]"
+                >
+                  로그아웃
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-300 bg-white p-4 shadow">
-            <div className="mb-4 flex items-center justify-between">
+          <div className="rounded-[32px] border border-black/8 bg-white p-4 shadow-[0_20px_60px_rgba(0,0,0,0.06)] md:p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
               <button
                 onClick={goPrevPeriod}
-                className="rounded-lg border border-gray-400 px-3 py-2 text-black"
+                className="rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-black transition hover:border-black/20 hover:bg-black hover:text-white"
               >
                 이전달
               </button>
 
-              <h2 className="text-2xl font-bold text-black">
+              <h2 className="text-center text-lg font-bold tracking-tight md:text-2xl">
                 {toDateString(settlementRange.start)} ~ {toDateString(settlementRange.end)}
               </h2>
 
               <button
                 onClick={goNextPeriod}
-                className="rounded-lg border border-gray-400 px-3 py-2 text-black"
+                className="rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-black transition hover:border-black/20 hover:bg-black hover:text-white"
               >
                 다음달
               </button>
@@ -903,7 +950,7 @@ export default function Home() {
               {["일", "월", "화", "수", "목", "금", "토"].map((label) => (
                 <div
                   key={label}
-                  className="rounded-lg bg-gray-100 p-2 text-center font-semibold text-black"
+                  className="rounded-2xl bg-[#f5f6fa] px-2 py-3 text-center text-xs font-bold text-black/65 md:text-sm"
                 >
                   {label}
                 </div>
@@ -911,12 +958,12 @@ export default function Home() {
             </div>
 
             {reportsLoading ? (
-              <div className="py-10 text-center text-black">달력 불러오는 중...</div>
+              <div className="py-12 text-center text-black/60">달력 불러오는 중...</div>
             ) : (
               <div className="grid grid-cols-7 gap-2">
                 {calendarCells.map((cell, index) => {
                   if (!cell) {
-                    return <div key={`empty-${index}`} className="min-h-[110px]" />;
+                    return <div key={`empty-${index}`} className="min-h-[104px] md:min-h-[120px]" />;
                   }
 
                   const dateKey = toDateString(cell);
@@ -943,15 +990,17 @@ export default function Home() {
                     <button
                       key={dateKey}
                       onClick={() => openReportModal(dateKey)}
-                      className={`min-h-[110px] rounded-xl border p-2 text-left ${
+                      className={`min-h-[104px] rounded-3xl border p-3 text-left shadow-[0_8px_24px_rgba(0,0,0,0.04)] transition hover:translate-y-[-1px] md:min-h-[120px] ${
                         isToday
-                          ? "border-black bg-gray-100"
-                          : "border-gray-300 bg-white"
+                          ? "border-black bg-[#f3f4f7]"
+                          : "border-black/8 bg-white"
                       }`}
                     >
-                      <div className="font-bold text-black">{cell.getDate()}</div>
+                      <div className="text-sm font-bold text-black md:text-base">
+                        {cell.getDate()}
+                      </div>
 
-                      <div className="mt-2 space-y-1 text-xs">
+                      <div className="mt-2 space-y-1 text-[11px] md:text-xs">
                         {report ? (
                           report.is_day_off ? (
                             <div className="font-semibold text-red-600">추가휴무</div>
@@ -961,13 +1010,11 @@ export default function Home() {
                             ) : isBiweeklyRegularOff ? (
                               <div className="font-semibold text-red-600">격주휴무</div>
                             ) : (
-                              <div className="text-black">미입력</div>
+                              <div className="text-black/45">미입력</div>
                             )
                           ) : (
                             <>
-                              <div className="text-black">
-                                배송 {report.delivered_count}
-                              </div>
+                              <div className="text-black/70">배송 {report.delivered_count}</div>
                               <div className="font-semibold text-black">
                                 {formatMoney(report.daily_sales)}
                               </div>
@@ -978,7 +1025,7 @@ export default function Home() {
                         ) : isBiweeklyRegularOff ? (
                           <div className="font-semibold text-red-600">격주휴무</div>
                         ) : (
-                          <div className="text-black">미입력</div>
+                          <div className="text-black/45">미입력</div>
                         )}
                       </div>
                     </button>
@@ -988,85 +1035,43 @@ export default function Home() {
             )}
           </div>
 
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="rounded-2xl border border-gray-300 bg-white p-4 shadow">
-              <p className="text-sm font-semibold text-black">평균 수량</p>
-              <p className="mt-2 text-2xl font-bold text-black">
-                {summary.avgQty}건
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-gray-300 bg-white p-4 shadow">
-              <p className="text-sm font-semibold text-black">평균 매출</p>
-              <p className="mt-2 text-2xl font-bold text-black">
-                {formatMoney(summary.avgSales)}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-gray-300 bg-white p-4 shadow">
-              <p className="text-sm font-semibold text-black">현재까지 총 수익</p>
-              <p className="mt-2 text-2xl font-bold text-black">
-                {formatMoney(summary.totalSales)}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-gray-300 bg-white p-4 shadow">
-              <p className="text-sm font-semibold text-black">예상 매출</p>
-              <p className="mt-2 text-2xl font-bold text-black">
-                {formatMoney(summary.expectedSales)}
-              </p>
-            </div>
+          <div className="grid gap-3 md:grid-cols-4">
+            <StatCard label="평균 수량" value={`${summary.avgQty}건`} />
+            <StatCard label="평균 매출" value={formatMoney(summary.avgSales)} />
+            <StatCard label="현재까지 총 수익" value={formatMoney(summary.totalSales)} />
+            <StatCard label="예상 매출" value={formatMoney(summary.expectedSales)} />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="rounded-2xl border border-gray-300 bg-white p-4 shadow">
-              <p className="text-sm font-semibold text-black">정산기간 일 수</p>
-              <p className="mt-2 text-2xl font-bold text-black">
-                {summary.adjustedPeriodDays}일
-              </p>
-              <p className="mt-1 text-xs text-black/60">
-                전체 {summary.totalPeriodDays}일 - 정기/격주휴무 {summary.regularOffDays}일
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-gray-300 bg-white p-4 shadow">
-              <p className="text-sm font-semibold text-black">근무한 일 수</p>
-              <p className="mt-2 text-2xl font-bold text-black">
-                {summary.workedDays}일
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-gray-300 bg-white p-4 shadow">
-              <p className="text-sm font-semibold text-black">추가휴무 일 수</p>
-              <p className="mt-2 text-2xl font-bold text-black">
-                {summary.additionalOffDays}일
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-gray-300 bg-white p-4 shadow">
-              <p className="text-sm font-semibold text-black">앞으로 남은 근무 일 수</p>
-              <p className="mt-2 text-2xl font-bold text-black">
-                {summary.remainingWorkDays}일
-              </p>
-            </div>
+          <div className="grid gap-3 md:grid-cols-4">
+            <StatCard
+              label="정산기간 일 수"
+              value={`${summary.adjustedPeriodDays}일`}
+              sub={`전체 ${summary.totalPeriodDays}일 - 정기/격주휴무 ${summary.regularOffDays}일`}
+            />
+            <StatCard label="근무한 일 수" value={`${summary.workedDays}일`} />
+            <StatCard label="추가휴무 일 수" value={`${summary.additionalOffDays}일`} />
+            <StatCard label="앞으로 남은 근무 일 수" value={`${summary.remainingWorkDays}일`} />
           </div>
         </div>
 
         {isReportModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-3 backdrop-blur-sm md:items-center md:p-4">
+            <div className="w-full max-w-md rounded-t-[32px] border border-black/8 bg-white p-5 shadow-[0_30px_80px_rgba(0,0,0,0.18)] md:rounded-[32px]">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-xl font-bold text-black">{selectedDate}</h3>
+                <div>
+                  <h3 className="text-xl font-bold tracking-tight text-black">{selectedDate}</h3>
+                  <p className="mt-1 text-sm text-black/50">일일 리포트 입력</p>
+                </div>
                 <button
                   onClick={closeReportModal}
-                  className="rounded-lg border border-gray-400 px-3 py-2 text-black"
+                  className="rounded-2xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-black transition hover:bg-black hover:text-white"
                 >
                   닫기
                 </button>
               </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
+              <div className="space-y-3.5">
+                <div className="flex items-center gap-2 rounded-2xl bg-[#f7f8fb] px-3 py-3">
                   <input
                     id="dayoff"
                     type="checkbox"
@@ -1086,10 +1091,8 @@ export default function Home() {
                   </label>
                 </div>
 
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-black">
-                    단가
-                  </label>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-black/70">단가</label>
                   <input
                     type="number"
                     name="unit_price_override"
@@ -1097,15 +1100,13 @@ export default function Home() {
                     onChange={handleReportChange}
                     disabled={reportForm.is_day_off}
                     placeholder={defaultUnitPrice ? `${defaultUnitPrice}원` : "단가"}
-                    className="no-spinner w-full rounded-lg border border-gray-400 px-3 py-2 text-black placeholder:text-black/35 disabled:bg-gray-100"
+                    className="no-spinner w-full rounded-2xl border border-black/10 bg-[#fafafa] px-4 py-3 text-black placeholder:text-black/35 outline-none transition focus:border-black/25 focus:bg-white disabled:bg-[#f2f3f6]"
                   />
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-black">
-                      배송 건수
-                    </label>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-black/70">배송 건수</label>
                     <input
                       type="number"
                       name="delivered_count"
@@ -1113,14 +1114,12 @@ export default function Home() {
                       onChange={handleReportChange}
                       disabled={reportForm.is_day_off}
                       placeholder="배송 건수"
-                      className="no-spinner w-full rounded-lg border border-gray-400 px-3 py-2 text-black placeholder:text-black/35 disabled:bg-gray-100"
+                      className="no-spinner w-full rounded-2xl border border-black/10 bg-[#fafafa] px-3 py-3 text-black placeholder:text-black/35 outline-none transition focus:border-black/25 focus:bg-white disabled:bg-[#f2f3f6]"
                     />
                   </div>
 
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-black">
-                      반품
-                    </label>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-black/70">반품</label>
                     <input
                       type="number"
                       name="returned_count"
@@ -1128,14 +1127,12 @@ export default function Home() {
                       onChange={handleReportChange}
                       disabled={reportForm.is_day_off}
                       placeholder="반품"
-                      className="no-spinner w-full rounded-lg border border-gray-400 px-3 py-2 text-black placeholder:text-black/35 disabled:bg-gray-100"
+                      className="no-spinner w-full rounded-2xl border border-black/10 bg-[#fafafa] px-3 py-3 text-black placeholder:text-black/35 outline-none transition focus:border-black/25 focus:bg-white disabled:bg-[#f2f3f6]"
                     />
                   </div>
 
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-black">
-                      취소
-                    </label>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-black/70">취소</label>
                     <input
                       type="number"
                       name="canceled_count"
@@ -1143,27 +1140,25 @@ export default function Home() {
                       onChange={handleReportChange}
                       disabled={reportForm.is_day_off}
                       placeholder="취소"
-                      className="no-spinner w-full rounded-lg border border-gray-400 px-3 py-2 text-black placeholder:text-black/35 disabled:bg-gray-100"
+                      className="no-spinner w-full rounded-2xl border border-black/10 bg-[#fafafa] px-3 py-3 text-black placeholder:text-black/35 outline-none transition focus:border-black/25 focus:bg-white disabled:bg-[#f2f3f6]"
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-black">
-                    특이사항
-                  </label>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-black/70">특이사항</label>
                   <textarea
                     name="memo"
                     value={reportForm.memo}
                     onChange={handleReportChange}
-                    className="min-h-[90px] w-full rounded-lg border border-gray-400 px-3 py-2 text-black"
+                    className="min-h-[96px] w-full rounded-2xl border border-black/10 bg-[#fafafa] px-4 py-3 text-black outline-none transition focus:border-black/25 focus:bg-white"
                   />
                 </div>
 
                 <button
                   onClick={saveReport}
                   disabled={saving}
-                  className="w-full rounded-lg bg-black px-4 py-3 text-white disabled:opacity-50"
+                  className="w-full rounded-2xl bg-black px-4 py-3.5 text-base font-semibold text-white shadow-[0_16px_32px_rgba(0,0,0,0.18)] transition hover:translate-y-[-1px] disabled:opacity-50"
                 >
                   {saving ? "저장 중..." : "저장"}
                 </button>
@@ -1171,60 +1166,137 @@ export default function Home() {
             </div>
           </div>
         )}
-
-        <style jsx global>{`
-          .no-spinner::-webkit-outer-spin-button,
-          .no-spinner::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-          }
-
-          .no-spinner {
-            -moz-appearance: textfield;
-          }
-        `}</style>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-white p-4 text-black">
-      <div className="mx-auto max-w-md rounded-2xl border border-gray-300 bg-white p-6 shadow">
-        <h1 className="mb-2 text-2xl font-bold text-black">기사 플랫폼 로그인</h1>
-        <p className="mb-6 text-black">회원가입 후 로그인하세요.</p>
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_#ffffff,_#eef2ff_38%,_#f6f7fb_70%)] px-4 py-6 text-black md:px-6">
+      <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-6xl items-center justify-center">
+        <div className="w-full max-w-md">
+          <div className="rounded-[36px] border border-black/8 bg-white p-6 shadow-[0_30px_80px_rgba(0,0,0,0.08)] md:p-8">
+            <div className="mb-6 text-center">
+              <p className="text-xs font-semibold tracking-[0.24em] text-black/40">
+                DRIVER REPORT
+              </p>
+              <h1 className="mt-2 text-3xl font-bold tracking-tight text-black">
+                기사 플랫폼 로그인
+              </h1>
+              <p className="mt-2 text-sm leading-6 text-black/55">
+                로그인 후 정산기간 달력과 업무 리포트를 바로 사용할 수 있습니다.
+              </p>
+            </div>
 
-        <div className="space-y-4">
-          <input
-            type="email"
-            placeholder="이메일"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-gray-400 px-3 py-2 text-black"
-          />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-black/70">이메일</label>
+                <input
+                  type="email"
+                  placeholder="이메일"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-2xl border border-black/10 bg-[#fafafa] px-4 py-3 text-black outline-none transition focus:border-black/25 focus:bg-white"
+                />
+              </div>
 
-          <input
-            type="password"
-            placeholder="비밀번호"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-gray-400 px-3 py-2 text-black"
-          />
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-black/70">비밀번호</label>
+                <input
+                  type="password"
+                  placeholder="비밀번호"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-2xl border border-black/10 bg-[#fafafa] px-4 py-3 text-black outline-none transition focus:border-black/25 focus:bg-white"
+                />
+              </div>
 
-          <button
-            onClick={signUp}
-            className="w-full rounded-lg bg-black py-3 text-white"
-          >
-            회원가입
-          </button>
+              <button
+                onClick={signIn}
+                className="w-full rounded-2xl bg-black py-3.5 text-base font-semibold text-white shadow-[0_16px_32px_rgba(0,0,0,0.18)] transition hover:translate-y-[-1px]"
+              >
+                로그인
+              </button>
 
-          <button
-            onClick={signIn}
-            className="w-full rounded-lg border border-gray-400 py-3 text-black"
-          >
-            로그인
-          </button>
+              <button
+                onClick={() => setIsSignupModalOpen(true)}
+                className="w-full rounded-2xl border border-black/10 bg-white py-3.5 text-base font-semibold text-black transition hover:bg-black hover:text-white"
+              >
+                회원가입
+              </button>
+            </div>
+          </div>
+
+          <p className="mt-5 text-center text-xs text-black/70">
+            support : motoboxx@naver.com
+          </p>
         </div>
       </div>
+
+      {isSignupModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-3 backdrop-blur-sm md:items-center md:p-4">
+          <div className="w-full max-w-md rounded-t-[32px] border border-black/8 bg-white p-6 shadow-[0_30px_80px_rgba(0,0,0,0.18)] md:rounded-[32px]">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold tracking-[0.24em] text-black/40">
+                  SIGN UP
+                </p>
+                <h2 className="mt-1 text-2xl font-bold tracking-tight text-black">
+                  회원가입
+                </h2>
+              </div>
+              <button
+                onClick={() => setIsSignupModalOpen(false)}
+                className="rounded-2xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-black transition hover:bg-black hover:text-white"
+              >
+                닫기
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-black/70">이메일</label>
+                <input
+                  type="email"
+                  placeholder="이메일"
+                  value={signupEmail}
+                  onChange={(e) => setSignupEmail(e.target.value)}
+                  className="w-full rounded-2xl border border-black/10 bg-[#fafafa] px-4 py-3 text-black outline-none transition focus:border-black/25 focus:bg-white"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-black/70">비밀번호</label>
+                <input
+                  type="password"
+                  placeholder="비밀번호"
+                  value={signupPassword}
+                  onChange={(e) => setSignupPassword(e.target.value)}
+                  className="w-full rounded-2xl border border-black/10 bg-[#fafafa] px-4 py-3 text-black outline-none transition focus:border-black/25 focus:bg-white"
+                />
+              </div>
+
+              <button
+                onClick={signUp}
+                className="w-full rounded-2xl bg-black py-3.5 text-base font-semibold text-white shadow-[0_16px_32px_rgba(0,0,0,0.18)] transition hover:translate-y-[-1px]"
+              >
+                회원가입 완료
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style jsx global>{`
+        .no-spinner::-webkit-outer-spin-button,
+        .no-spinner::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+
+        .no-spinner {
+          -moz-appearance: textfield;
+        }
+      `}</style>
     </main>
   );
 }
