@@ -1227,7 +1227,7 @@ export default function Home() {
           </div>
 
           <p className="mt-5 text-center text-xs text-black/70">
-            support : motoboxx@naver.com
+            kakao talk : morobb
           </p>
         </div>
       </div>
